@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>石头剪刀布智能助手🤓👆</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            margin-top: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            background: linear-gradient(to right, #ff9966, #ff5e62);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .game-area {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .player-area {
+            background: rgba(30, 30, 50, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            flex: 1;
+            min-width: 300px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .player-title {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #4da0ff;
+        }
+        
+        .choice-area {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+        }
+        
+        .choice {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.1);
+            border: 3px solid transparent;
+        }
+        
+        .choice:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #4da0ff;
+        }
+        
+        .choice.selected {
+            transform: scale(1.15);
+            border-color: #ffcc00;
+            box-shadow: 0 0 20px #ffcc00;
+        }
+        
+        .result-area {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .result-title {
+            font-size: 1.6rem;
+            color: #ffcc00;
+            margin-bottom: 20px;
+        }
+        
+        .suggestion {
+            font-size: 5rem;
+            margin: 20px 0;
+            text-shadow: 0 0 15px rgba(255, 204, 0, 0.7);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            background: rgba(50, 50, 70, 0.8);
+            border-radius: 10px;
+            padding: 15px;
+            min-width: 180px;
+            margin: 10px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #4da0ff;
+            margin: 10px 0;
+        }
+        
+        .models {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .model-card {
+            background: rgba(40, 40, 60, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            flex: 1;
+            min-width: 250px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .model-title {
+            font-size: 1.4rem;
+            color: #ff9966;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .progress-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            height: 20px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        
+        .markov { background: linear-gradient(90deg, #4CAF50, #8BC34A); }
+        .lstm { background: linear-gradient(90deg, #2196F3, #03A9F4); }
+        .rl { background: linear-gradient(90deg, #FF9800, #FFC107); }
+        
+        .history-section {
+            margin-top: 30px;
+            background: rgba(30, 30, 50, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .section-title {
+            font-size: 1.8rem;
+            color: #ff9966;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .history-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #4da0ff, #5d26c1);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #ff9966, #ff5e62);
+        }
+        
+        select {
+            background: rgba(50, 50, 70, 0.8);
+            color: white;
+            border: 2px solid #4da0ff;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 1rem;
+            width: 200px;
+        }
+        
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .history-table th {
+            background: rgba(77, 160, 255, 0.3);
+            padding: 12px;
+            text-align: left;
+        }
+        
+        .history-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .history-table tr:hover {
+            background: rgba(77, 160, 255, 0.1);
+        }
+        
+        .result-win {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .result-loss {
+            color: #FF5252;
+            font-weight: bold;
+        }
+        
+        .result-draw {
+            color: #FFC107;
+            font-weight: bold;
+        }
+        
+        .emoji {
+            font-size: 1.5rem;
+            margin: 0 5px;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        
+        .loading {
+            color: #ffcc00;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .player-management {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .player-input {
+            background: rgba(50, 50, 70, 0.8);
+            color: white;
+            border: 2px solid #4da0ff;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 1rem;
+            width: 200px;
+        }
+        
+        .player-display {
+            font-size: 1.1rem;
+            padding: 10px 20px;
+            background: rgba(77, 160, 255, 0.3);
+            border-radius: 50px;
+            min-width: 180px;
+        }
+        
+        @media (max-width: 768px) {
+            .game-area {
+                flex-direction: column;
+            }
+            
+            .models {
+                flex-direction: column;
+            }
+            
+            .choice {
+                width: 80px;
+                height: 80px;
+                font-size: 2.5rem;
+            }
+            
+            .history-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .player-management {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-robot"></i> 石头剪刀布智能助手</h1>
+            <p class="subtitle">基于马尔可夫链、LSTM和强化学习的混合AI系统，实时分析对手出拳模式，提供最优出拳建议</p>
+        </header>
+        
+        <div class="game-area">
+            <div class="player-area">
+                <h2 class="player-title"><i class="fas fa-user"></i> 我方出拳</h2>
+                <div class="choice-area">
+                    <div class="choice" data-choice="rock">✊</div>
+                    <div class="choice" data-choice="paper">✋</div>
+                    <div class="choice" data-choice="scissors">✌️</div>
+                </div>
+            </div>
+            
+            <div class="player-area">
+                <h2 class="player-title"><i class="fas fa-laptop-code"></i> 对手出拳</h2>
+                <div class="choice-area">
+                    <div class="choice" data-choice="rock">✊</div>
+                    <div class="choice" data-choice="paper">✋</div>
+                    <div class="choice" data-choice="scissors">✌️</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="result-area">
+            <h2 class="result-title">AI 推荐</h2>
+            <div class="suggestion" id="suggestion">🤖</div>
+            <p>系统推荐您出 <span id="recommended-choice">--</span>，预测胜率: <span id="win-probability">--</span></p>
+            <div id="model-training" class="loading" style="display:none;"><i class="fas fa-spinner fa-spin"></i> LSTM模型训练中...</div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div>历史总胜率</div>
+                    <div class="stat-value" id="overall-win-rate">--</div>
+                </div>
+                <div class="stat-card">
+                    <div>当前连胜</div>
+                    <div class="stat-value" id="win-streak">0</div>
+                </div>
+                <div class="stat-card">
+                    <div>对战次数</div>
+                    <div class="stat-value" id="total-games">0</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="models">
+            <div class="model-card">
+                <h3 class="model-title"><i class="fas fa-link"></i> 马尔可夫链模型</h3>
+                <p>基于近期出拳序列的快速预测</p>
+                <div class="progress-container">
+                    <div class="progress-bar markov" id="markov-bar" style="width: 35%"></div>
+                </div>
+                <p>当前权重: <b id="markov-weight">35%</b></p>
+                <p>准确率: <b id="markov-accuracy">--</b></p>
+            </div>
+            
+            <div class="model-card">
+                <h3 class="model-title"><i class="fas fa-brain"></i> LSTM模型</h3>
+                <p>深度分析长期出拳模式</p>
+                <div class="progress-container">
+                    <div class="progress-bar lstm" id="lstm-bar" style="width: 50%"></div>
+                </div>
+                <p>当前权重: <b id="lstm-weight">50%</b></p>
+                <p>准确率: <b id="lstm-accuracy">--</b></p>
+            </div>
+            
+            <div class="model-card">
+                <h3 class="model-title"><i class="fas fa-sync-alt"></i> 强化学习模型</h3>
+                <p>实时优化策略最大化胜率</p>
+                <div class="progress-container">
+                    <div class="progress-bar rl" id="rl-bar" style="width: 15%"></div>
+                </div>
+                <p>当前权重: <b id="rl-weight">15%</b></p>
+                <p>准确率: <b id="rl-accuracy">--</b></p>
+            </div>
+        </div>
+        
+        <div class="history-section">
+            <h2 class="section-title"><i class="fas fa-history"></i> 历史记录</h2>
+            
+            <div class="history-controls">
+                <div>
+                    <button class="btn" id="save-btn"><i class="fas fa-save"></i> 保存当前对局</button>
+                    <button class="btn btn-secondary" id="reset-btn"><i class="fas fa-trash-alt"></i> 重置数据</button>
+                </div>
+                
+                <div class="player-management">
+                    <select id="opponent-select">
+                        <option value="default">默认对手</option>
+                        <option value="player1">玩家1</option>
+                        <option value="player2">玩家2</option>
+                        <option value="ai">AI专家</option>
+                    </select>
+                    <input type="text" id="new-player" class="player-input" placeholder="输入新玩家名称">
+                    <button class="btn" id="add-player-btn"><i class="fas fa-plus"></i> 添加玩家</button>
+                    <button class="btn btn-secondary" id="delete-player-btn"><i class="fas fa-trash-alt"></i> 删除当前玩家</button>
+                    <div class="player-display">
+                        <i class="fas fa-user"></i> 当前对手: <span id="current-player">默认对手</span>
+                    </div>
+                </div>
+            </div>
+            
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>我方出拳</th>
+                        <th>对手出拳</th>
+                        <th>结果</th>
+                        <th>预测模型</th>
+                        <th>时间</th>
+                    </tr>
+                </thead>
+                <tbody id="history-body">
+                    <!-- 历史记录将动态生成 -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="footer">
+            <p>石头剪刀布智能助手 | 支持玩家管理 | 自动重置选择 | 模型权重动态调整</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 引入TensorFlow.js
+            console.log("TensorFlow.js版本:", tf.version.tfjs);
+            
+            // 游戏状态
+            const state = {
+                playerChoice: null,
+                opponentChoice: null,
+                players: {
+                    'default': {
+                        name: '默认对手',
+                        history: [],
+                        models: {
+                            markov: { weight: 0.35, accuracy: 0, correct: 0, total: 0 },
+                            lstm: { weight: 0.50, accuracy: 0, correct: 0, total: 0 },
+                            rl: { weight: 0.15, accuracy: 0, correct: 0, total: 0 }
+                        },
+                        stats: {
+                            wins: 0,
+                            losses: 0,
+                            draws: 0,
+                            total: 0,
+                            streak: 0,
+                            notdrawstotal: 0
+                        },
+                        lstmModel: null,
+                        isTraining: false
+                    }
+                },
+                currentPlayerId: 'default'
+            };
+            
+            // 初始化模型权重
+            updateModelWeights();
+            
+            // DOM元素
+            const choices = document.querySelectorAll('.choice');
+            const suggestionEl = document.getElementById('suggestion');
+            const recommendedChoiceEl = document.getElementById('recommended-choice');
+            const winProbabilityEl = document.getElementById('win-probability');
+            const overallWinRateEl = document.getElementById('overall-win-rate');
+            const winStreakEl = document.getElementById('win-streak');
+            const totalGamesEl = document.getElementById('total-games');
+            const saveBtn = document.getElementById('save-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const opponentSelect = document.getElementById('opponent-select');
+            const newPlayerInput = document.getElementById('new-player');
+            const addPlayerBtn = document.getElementById('add-player-btn');
+            const currentPlayerEl = document.getElementById('current-player');
+            const trainingEl = document.getElementById('model-training');
+            
+            // 获取当前玩家
+            function getCurrentPlayer() {
+                return state.players[state.currentPlayerId];
+            }
+            
+            // 选择处理
+            choices.forEach(choice => {
+                choice.addEventListener('click', function() {
+                    const player = this.parentElement.parentElement.querySelector('.player-title');
+                    const choiceType = this.getAttribute('data-choice');
+                    
+                    // 移除所有选择状态
+                    this.parentElement.querySelectorAll('.choice').forEach(c => {
+                        c.classList.remove('selected');
+                    });
+                    
+                    // 设置当前选择
+                    this.classList.add('selected');
+                    
+                    // 更新状态
+                    if (player.textContent.includes('我方')) {
+                        state.playerChoice = choiceType;
+                    } else {
+                        state.opponentChoice = choiceType;
+                    }
+                    
+                    // 如果双方都已选择，生成结果
+                    if (state.playerChoice && state.opponentChoice) {
+                        setTimeout(calculateResult, 500);
+                    }
+                });
+            });
+            
+            // 马尔可夫链模型
+            class MarkovModel {
+                constructor(order = 2) {
+                    this.order = order;
+                    this.transitions = {};
+                    this.lastSequence = [];
+                }
+                
+                // 更新转移概率
+                update(opponentChoice) {
+                    if (this.lastSequence.length === this.order) {
+                        const key = this.lastSequence.join(',');
+                        if (!this.transitions[key]) {
+                            this.transitions[key] = {rock: 0, paper: 0, scissors: 0};
+                        }
+                        this.transitions[key][opponentChoice] += 1;
+                        
+                        // 更新序列
+                        this.lastSequence.shift();
+                        this.lastSequence.push(opponentChoice);
+                    } else {
+                        this.lastSequence.push(opponentChoice);
+                    }
+                }
+                
+                // 预测下一步
+                predict() {
+                    if (this.lastSequence.length < this.order) {
+                        // 序列长度不足，返回随机选择
+                        return this.randomChoice();
+                    }
+                    
+                    const key = this.lastSequence.join(',');
+                    const transition = this.transitions[key];
+                    
+                    if (!transition) {
+                        return this.randomChoice();
+                    }
+                    
+                    // 找出概率最高的选择
+                    let maxCount = 0;
+                    let prediction = 'rock';
+                    
+                    for (const choice in transition) {
+                        if (transition[choice] > maxCount) {
+                            maxCount = transition[choice];
+                            prediction = choice;
+                        }
+                    }
+                    
+                    return prediction;
+                }
+                
+                // 随机选择
+                randomChoice() {
+                    const choices = ['rock', 'paper', 'scissors'];
+                    return choices[Math.floor(Math.random() * choices.length)];
+                }
+            }
+            
+            // 强化学习模型 (Q-learning)
+            class RLModel {
+                constructor() {
+                    this.qTable = {};
+                    this.alpha = 0.1; // 学习率
+                    this.gamma = 0.9; // 折扣因子
+                    this.epsilon = 0.1; // 探索率
+                    this.lastState = null;
+                    this.lastAction = null;
+                }
+                
+                // 获取状态键
+                getStateKey(state) {
+                    return state.join(',');
+                }
+                
+                // 初始化Q值
+                initializeQValue(state) {
+                    const key = this.getStateKey(state);
+                    if (!this.qTable[key]) {
+                        this.qTable[key] = {rock: 0, paper: 0, scissors: 0};
+                    }
+                }
+                
+                // 选择动作
+                chooseAction(state) {
+                    this.initializeQValue(state);
+                    const key = this.getStateKey(state);
+                    
+                    // 以epsilon概率进行探索
+                    if (Math.random() < this.epsilon) {
+                        const choices = ['rock', 'paper', 'scissors'];
+                        return choices[Math.floor(Math.random() * choices.length)];
+                    }
+                    
+                    // 选择Q值最高的动作
+                    let maxQ = -Infinity;
+                    let bestAction = 'rock';
+                    
+                    for (const action in this.qTable[key]) {
+                        if (this.qTable[key][action] > maxQ) {
+                            maxQ = this.qTable[key][action];
+                            bestAction = action;
+                        }
+                    }
+                    
+                    return bestAction;
+                }
+                
+                // 更新Q值
+                updateQValue(state, action, reward, nextState) {
+                    this.initializeQValue(state);
+                    this.initializeQValue(nextState);
+                    
+                    const stateKey = this.getStateKey(state);
+                    const nextStateKey = this.getStateKey(nextState);
+                    
+                    // 找出下一个状态的最大Q值
+                    let maxNextQ = -Infinity;
+                    for (const a in this.qTable[nextStateKey]) {
+                        if (this.qTable[nextStateKey][a] > maxNextQ) {
+                            maxNextQ = this.qTable[nextStateKey][a];
+                        }
+                    }
+                    
+                    // 更新Q值
+                    this.qTable[stateKey][action] = (1 - this.alpha) * this.qTable[stateKey][action] + 
+                                                   this.alpha * (reward + this.gamma * maxNextQ);
+                }
+                
+                // 预测下一步
+                predict(state) {
+                    this.initializeQValue(state);
+                    return this.chooseAction(state);
+                }
+            }
+            
+            // 创建模型实例
+            function createModelsForPlayer() {
+                const player = getCurrentPlayer();
+                if (!player.markovModel) {
+                    player.markovModel = new MarkovModel();
+                }
+                if (!player.rlModel) {
+                    player.rlModel = new RLModel();
+                }
+            }
+            
+            // 初始化LSTM模型
+            async function createLSTMModel() {
+                const model = tf.sequential();
+                
+                // 输入层 (序列长度为5，每个时间步有3个特征)
+                model.add(tf.layers.lstm({
+                    units: 32,
+                    inputShape: [5, 3],
+                    returnSequences: false
+                }));
+                
+                // 输出层 (3个类别)
+                model.add(tf.layers.dense({
+                    units: 3,
+                    activation: 'softmax'
+                }));
+                
+                // 编译模型
+                model.compile({
+                    optimizer: tf.train.adam(0.001),
+                    loss: 'categoricalCrossentropy',
+                    metrics: ['accuracy']
+                });
+                
+                return model;
+            }
+            
+            // 训练LSTM模型
+            async function trainLSTMModel() {
+                const player = getCurrentPlayer();
+                if (player.history.length < 5) {
+                    console.log("数据不足，无法训练LSTM模型");
+                    return;
+                }
+                
+                trainingEl.style.display = 'block';
+                player.isTraining = true;
+                
+                try {
+                    // 准备训练数据
+                    const sequenceLength = 5;
+                    const xs = [];
+                    const ys = [];
+                    
+                    for (let i = sequenceLength; i < player.history.length; i++) {
+                        // 输入序列 (前5个对手出拳)
+                        const sequence = player.history.slice(i - sequenceLength, i)
+                            .map(item => item.opponent);
+                        
+                        // 转换为one-hot编码
+                        const input = sequence.map(choice => {
+                            return [
+                                choice === 'rock' ? 1 : 0,
+                                choice === 'paper' ? 1 : 0,
+                                choice === 'scissors' ? 1 : 0
+                            ];
+                        });
+                        
+                        // 输出 (下一个对手出拳)
+                        const output = player.history[i].opponent;
+                        const outputEncoded = [
+                            output === 'rock' ? 1 : 0,
+                            output === 'paper' ? 1 : 0,
+                            output === 'scissors' ? 1 : 0
+                        ];
+                        
+                        xs.push(input);
+                        ys.push(outputEncoded);
+                    }
+                    
+                    if (xs.length < 1) {
+                        console.log("训练数据不足");
+                        return;
+                    }
+                    
+                    // 转换为Tensor
+                    const xsTensor = tf.tensor3d(xs);
+                    const ysTensor = tf.tensor2d(ys);
+                    
+                    // 训练模型
+                    if (!player.lstmModel) {
+                        player.lstmModel = await createLSTMModel();
+                    }
+                    
+                    await player.lstmModel.fit(xsTensor, ysTensor, {
+                        epochs: 15,
+                        batchSize: Math.min(8, xs.length),
+                        callbacks: {
+                            onEpochEnd: (epoch, logs) => {
+                                console.log(`Epoch ${epoch + 1}: 损失 = ${logs.loss.toFixed(4)}, 准确率 = ${logs.acc.toFixed(4)}`);
+                            }
+                        }
+                    });
+                    
+                    // 清理内存
+                    xsTensor.dispose();
+                    ysTensor.dispose();
+                    
+                    console.log("LSTM模型训练完成");
+                } catch (error) {
+                    console.error("LSTM训练出错:", error);
+                } finally {
+                    trainingEl.style.display = 'none';
+                    player.isTraining = false;
+                }
+            }
+            
+            // 使用LSTM模型预测
+            async function predictWithLSTM() {
+                const player = getCurrentPlayer();
+                if (!player.lstmModel || player.history.length < 5) {
+                    return player.markovModel.randomChoice(); // 回退到随机选择
+                }
+                
+                try {
+                    // 获取最近的5个对手出拳
+                    const sequence = player.history
+                        .slice(Math.max(player.history.length - 5, 0))
+                        .map(item => item.opponent);
+                    
+                    // 如果序列不足5个，填充到5个
+                    while (sequence.length < 5) {
+                        sequence.unshift('rock'); // 使用石头填充
+                    }
+                    
+                    // 转换为one-hot编码
+                    const input = sequence.map(choice => {
+                        return [
+                            choice === 'rock' ? 1 : 0,
+                            choice === 'paper' ? 1 : 0,
+                            choice === 'scissors' ? 1 : 0
+                        ];
+                    });
+                    
+                    // 创建Tensor
+                    const inputTensor = tf.tensor3d([input]);
+                    
+                    // 进行预测
+                    const prediction = player.lstmModel.predict(inputTensor);
+                    const predictionData = await prediction.data();
+                    
+                    // 清理内存
+                    inputTensor.dispose();
+                    prediction.dispose();
+                    
+                    // 找出概率最高的类别
+                    const probabilities = Array.from(predictionData);
+                    const maxIndex = probabilities.indexOf(Math.max(...probabilities));
+                    
+                    return ['rock', 'paper', 'scissors'][maxIndex];
+                } catch (error) {
+                    console.error("LSTM预测出错:", error);
+                    return getCurrentPlayer().markovModel.randomChoice(); // 出错时回退
+                }
+            }
+            
+            // 更新模型权重
+            function updateModelWeights() {
+                const player = getCurrentPlayer();
+                const models = player.models;
+                
+                // 更新UI显示
+                document.getElementById('markov-weight').textContent = Math.round(models.markov.weight * 100) + '%';
+                document.getElementById('lstm-weight').textContent = Math.round(models.lstm.weight * 100) + '%';
+                document.getElementById('rl-weight').textContent = Math.round(models.rl.weight * 100) + '%';
+                
+                document.getElementById('markov-bar').style.width = (models.markov.weight * 100) + '%';
+                document.getElementById('lstm-bar').style.width = (models.lstm.weight * 100) + '%';
+                document.getElementById('rl-bar').style.width = (models.rl.weight * 100) + '%';
+            }
+            
+            // 计算比赛结果
+            async function calculateResult() {
+                if (!state.playerChoice || !state.opponentChoice) return;
+                
+                const player = getCurrentPlayer();
+                createModelsForPlayer();
+                if (player.history.length >= 5 && !player.isTraining) {
+                     await trainLSTMModel(); // 改为await确保训练完成
+                }
+                // 获取模型预测
+                const markovPrediction = player.markovModel.predict();
+                const rlPrediction = player.rlModel.predict([state.opponentChoice]);
+                const lstmPrediction = await predictWithLSTM();
+                
+                // 记录模型预测
+                const predictions = {
+                    markov: markovPrediction,
+                    lstm: lstmPrediction,
+                    rl: rlPrediction
+                };
+                
+                // 加权融合预测
+                const choices = {rock: 0, paper: 0, scissors: 0};
+                
+                choices[markovPrediction] += player.models.markov.weight;
+                choices[lstmPrediction] += player.models.lstm.weight;
+                choices[rlPrediction] += player.models.rl.weight;
+                
+                // 选择得分最高的选项
+                let maxScore = 0;
+                let aiRecommendation = 'rock';
+                
+                for (const choice in choices) {
+                    if (choices[choice] > maxScore) {
+                        maxScore = choices[choice];
+                        aiRecommendation = choice;
+                    }
+                }
+                
+                // 显示推荐
+                suggestionEl.textContent = getEmoji(aiRecommendation);
+                recommendedChoiceEl.textContent = getChoiceName(aiRecommendation);
+                
+                // 计算预测胜率（基于模型权重和最近表现）
+                const winProbability = (0.5 + 
+                    player.models.markov.accuracy * player.models.markov.weight +
+                    player.models.lstm.accuracy * player.models.lstm.weight +
+                    player.models.rl.accuracy * player.models.rl.weight) * 50;
+                
+                winProbabilityEl.textContent = winProbability.toFixed(1) + '%';
+                
+                // 确定比赛结果
+                const result = determineResult(state.playerChoice, state.opponentChoice);
+                
+                // 更新模型
+                player.markovModel.update(state.opponentChoice);
+                
+                // 更新强化学习模型
+                const reward = result === 'win' ? 1 : (result === 'draw' ? 0 : -1);
+                player.rlModel.updateQValue([state.opponentChoice], rlPrediction, reward, [state.opponentChoice]);
+                
+                // 更新模型准确率
+                updateModelAccuracy(predictions, state.opponentChoice);
+                
+                // 添加到历史记录
+                const resultEntry = {
+                    id: player.stats.total + 1,
+                    player: state.playerChoice,
+                    opponent: state.opponentChoice,
+                    result: result,
+                    model: determineBestModel(predictions, state.opponentChoice),
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                
+                player.history.push(resultEntry);
+                updateHistoryTable();
+                
+                // 更新统计数据
+                updateStats(result);
+                
+                // 更新模型权重
+                adjustModelWeights(predictions, state.opponentChoice);
+                
+                // 训练LSTM模型（如果数据量足够）
+                if (player.history.length >= 5 && !player.isTraining) {
+                   // setTimeout(trainLSTMModel, 1000);
+                }
+                
+                // 1秒后重置选择
+                setTimeout(resetChoices, 1000);
+            }
+            
+            // 重置选择状态
+            function resetChoices() {
+                // 清除UI上的选择状态
+                document.querySelectorAll('.choice').forEach(c => {
+                    c.classList.remove('selected');
+                });
+                
+                // 重置内部状态
+                state.playerChoice = null;
+                state.opponentChoice = null;
+                
+            }
+            
+            // 确定比赛结果
+            function determineResult(player, opponent) {
+                if (player === opponent) return 'draw';
+                if (
+                    (player === 'rock' && opponent === 'scissors') ||
+                    (player === 'paper' && opponent === 'rock') ||
+                    (player === 'scissors' && opponent === 'paper')
+                ) {
+                    return 'win';
+                }
+                return 'loss';
+            }
+            
+            // 更新模型准确率
+            function updateModelAccuracy(predictions, actual) {
+                const player = getCurrentPlayer();
+                const models = player.models;
+                
+                for (const model in predictions) {
+                    models[model].total += 1;
+                    
+                    if (predictions[model] === actual) {
+                        models[model].correct += 1;
+                    }
+                    
+                    // 计算准确率
+                    models[model].accuracy = models[model].correct / models[model].total;
+                    
+                    // 更新UI
+                    document.getElementById(`${model}-accuracy`).textContent = 
+                        (models[model].accuracy * 100).toFixed(1) + '%';
+                }
+            }
+            
+            // 调整模型权重
+            function adjustModelWeights(predictions, actual) {
+                const player = getCurrentPlayer();
+                const models = player.models;
+                const totalWeight = models.markov.weight + models.lstm.weight + models.rl.weight;
+                
+                for (const model in predictions) {
+                    if (predictions[model] === actual) {
+                        // 预测正确，增加权重
+                        models[model].weight = Math.min(0.7, models[model].weight * 1.05);
+                    } else {
+                        // 预测错误，减少权重
+                        models[model].weight = Math.max(0.05, models[model].weight * 0.95);
+                    }
+                }
+                
+                // 归一化权重
+                const newTotalWeight = models.markov.weight + models.lstm.weight + models.rl.weight;
+                models.markov.weight = models.markov.weight * totalWeight / newTotalWeight;
+                models.lstm.weight = models.lstm.weight * totalWeight / newTotalWeight;
+                models.rl.weight = models.rl.weight * totalWeight / newTotalWeight;
+                
+                updateModelWeights();
+            }
+            
+            // 确定最佳模型
+            function determineBestModel(predictions, actual) {
+                const player = getCurrentPlayer();
+                const models = player.models;
+                
+                let bestModel = 'markov';
+                let bestAccuracy = 0;
+                
+                for (const model in predictions) {
+                    if (predictions[model] === actual && models[model].accuracy > bestAccuracy) {
+                        bestModel = model;
+                        bestAccuracy = models[model].accuracy;
+                    }
+                }
+                
+                // 返回模型名称（首字母大写）
+                return bestModel.charAt(0).toUpperCase() + bestModel.slice(1);
+            }
+            
+            // 更新历史记录表格
+            function updateHistoryTable() {
+                const tableBody = document.getElementById('history-body');
+                tableBody.innerHTML = '';
+                
+                const player = getCurrentPlayer();
+                
+                // 显示最近的记录（最多25条）
+                const recentHistory = player.history.slice(-25).reverse();
+                
+                recentHistory.forEach(entry => {
+                    const row = document.createElement('tr');
+                    
+                    // 结果样式
+                    let resultClass = '';
+                    let resultText = '';
+                    if (entry.result === 'win') {
+                        resultClass = 'result-win';
+                        resultText = '胜利';
+                    } else if (entry.result === 'loss') {
+                        resultClass = 'result-loss';
+                        resultText = '失败';
+                    } else {
+                        resultClass = 'result-draw';
+                        resultText = '平局';
+                    }
+                    
+                    row.innerHTML = `
+                        <td>${entry.id}</td>
+                        <td><span class="emoji">${getEmoji(entry.player)}</span> ${getChoiceName(entry.player)}</td>
+                        <td><span class="emoji">${getEmoji(entry.opponent)}</span> ${getChoiceName(entry.opponent)}</td>
+                        <td class="${resultClass}">${resultText}</td>
+                        <td>${entry.model}</td>
+                        <td>${entry.timestamp}</td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+            }
+            
+            // 更新统计信息
+            function updateStats(result) {
+                const player = getCurrentPlayer();
+                const stats = player.stats;
+                if (result === undefined) {
+                    // 只是更新UI，不修改数据
+                    const winRate = stats.notdrawstotal > 0 
+                        ? (stats.wins / stats.notdrawstotal * 100).toFixed(1) 
+                        : '0.0';
+                    
+                    // 更新UI
+                    overallWinRateEl.textContent = winRate + '%';
+                    winStreakEl.textContent = stats.streak;
+                    totalGamesEl.textContent = stats.total;
+                    return;
+                }
+                // 更新统计数据
+                if (result === 'win') {
+                    stats.wins += 1;
+                    stats.streak += 1;
+                    stats.notdrawstotal+=1;
+                } else if (result === 'loss') {
+                    stats.losses += 1;
+                    stats.streak = 0;
+                    stats.notdrawstotal+=1;
+                } else {
+                    stats.draws += 1;
+                    stats.streak = 0;
+                }
+                
+                stats.total += 1;
+                
+                // 计算胜率
+                const winRate = stats.notdrawstotal > 0 
+                    ? (stats.wins / stats.notdrawstotal * 100).toFixed(1) 
+                    : '0.0';
+                
+                // 更新UI
+                overallWinRateEl.textContent = winRate + '%';
+                winStreakEl.textContent = stats.streak;
+                totalGamesEl.textContent = stats.total;
+            }
+            
+            // 根据选择类型获取emoji
+            function getEmoji(choice) {
+                switch(choice) {
+                    case 'rock': return '✊';
+                    case 'paper': return '✋';
+                    case 'scissors': return '✌️';
+                    default: return '';
+                }
+            }
+            
+            // 根据选择类型获取名称
+            function getChoiceName(choice) {
+                switch(choice) {
+                    case 'rock': return '石头';
+                    case 'paper': return '布';
+                    case 'scissors': return '剪刀';
+                    default: return '';
+                }
+            }
+            
+            // 添加新玩家
+            function addNewPlayer(name) {
+                if (!name || name.trim() === '') {
+                    alert('请输入玩家名称');
+                    return;
+                }
+                
+                // 生成唯一ID
+                const id = 'player' + Date.now();
+                
+                // 创建新玩家数据
+                state.players[id] = {
+                    name: name,
+                    history: [],
+                    models: {
+                        markov: { weight: 0.35, accuracy: 0, correct: 0, total: 0 },
+                        lstm: { weight: 0.50, accuracy: 0, correct: 0, total: 0 },
+                        rl: { weight: 0.15, accuracy: 0, correct: 0, total: 0 }
+                    },
+                    stats: {
+                        wins: 0,
+                        losses: 0,
+                        draws: 0,
+                        total: 0,
+                        streak: 0,
+                        notdrawstotal: 0
+                    },
+                    lstmModel: null,
+                    isTraining: false,
+                    markovModel: new MarkovModel(),
+                    rlModel: new RLModel()
+                };
+                
+                // 添加到选择框
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = name;
+                opponentSelect.appendChild(option);
+                
+                // 设置为当前玩家
+                state.currentPlayerId = id;
+                opponentSelect.value = id;
+                currentPlayerEl.textContent = name;
+                
+                // 重置UI
+                updateStats();
+                updateModelWeights();
+                updateHistoryTable();
+                
+                // 清空输入框
+                newPlayerInput.value = '';
+                suggestionEl.textContent = '🤖';
+                recommendedChoiceEl.textContent = '--';
+                winProbabilityEl.textContent = '--';
+                alert(`已添加新玩家: ${name}`);
+            }
+            
+            // 切换玩家
+            function switchPlayer(playerId) {
+                state.currentPlayerId = playerId;
+                const player = state.players[playerId];
+                currentPlayerEl.textContent = player.name;
+                
+                // 更新UI
+                updateStats();
+                updateModelWeights();
+                updateHistoryTable();
+                
+                // 创建模型实例
+                createModelsForPlayer();
+                
+                // 重置选择状态
+                resetChoices();
+            }
+            // 获取删除按钮元素
+            const deletePlayerBtn = document.getElementById('delete-player-btn');
+            
+            // 删除当前玩家
+            function deleteCurrentPlayer() {
+                const playerId = state.currentPlayerId;
+                // 不能删除默认玩家
+                if (playerId === 'default') {
+                    alert('不能删除默认玩家！');
+                    return;
+                }
+                
+                if (confirm(`确定要删除玩家 "${state.players[playerId].name}" 吗？此操作不可撤销！`)) {
+                    // 删除玩家
+                    delete state.players[playerId];
+                    
+                    // 切换到默认玩家
+                    state.currentPlayerId = 'default';
+                    opponentSelect.value = 'default';
+                    currentPlayerEl.textContent = state.players.default.name;
+                    
+                    // 更新选择框
+                    updatePlayerSelect();
+                    
+                    // 更新UI
+                    updateStats();
+                    updateModelWeights();
+                    updateHistoryTable();
+                    
+                    alert('玩家已删除！');
+                }
+            }
+
+            // 更新玩家选择框
+            function updatePlayerSelect() {
+                opponentSelect.innerHTML = '';
+                for (const id in state.players) {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = state.players[id].name;
+                    if (id === state.currentPlayerId) {
+                        option.selected = true;
+                    }
+                    opponentSelect.appendChild(option);
+                }
+                opponentSelect.value = state.currentPlayerId;
+            }
+
+            // 添加删除按钮事件
+            deletePlayerBtn.addEventListener('click', deleteCurrentPlayer);
+            // 按钮事件
+            saveBtn.addEventListener('click', function() {
+                // 保存到localStorage
+                localStorage.setItem('rpsAssistantData', JSON.stringify(state));
+                alert('对局数据已保存！');
+            });
+            
+            resetBtn.addEventListener('click', function() {
+                if (confirm('确定要重置当前玩家的数据吗？')) {
+                    const player = getCurrentPlayer();
+                    
+                    // 重置选择
+                    document.querySelectorAll('.choice').forEach(c => {
+                        c.classList.remove('selected');
+                    });
+                    
+                    // 重置状态
+                    state.playerChoice = null;
+                    state.opponentChoice = null;
+                    player.history = [];
+                    player.stats = {
+                        wins: 0,
+                        losses: 0,
+                        draws: 0,
+                        total: 0,
+                        streak: 0,
+                        notdrawstotal:0
+                    };
+                    
+                    // 重置模型
+                    player.models = {
+                        markov: { weight: 0.35, accuracy: 0, correct: 0, total: 0 },
+                        lstm: { weight: 0.50, accuracy: 0, correct: 0, total: 0 },
+                        rl: { weight: 0.15, accuracy: 0, correct: 0, total: 0 }
+                    };
+                    
+                    // 重置模型实例
+                    player.markovModel = new MarkovModel();
+                    player.rlModel = new RLModel();
+                    
+                    // 重置显示
+                    suggestionEl.textContent = '🤖';
+                    recommendedChoiceEl.textContent = '--';
+                    winProbabilityEl.textContent = '--';
+                    overallWinRateEl.textContent = '--';
+                    winStreakEl.textContent = '0';
+                    totalGamesEl.textContent = '0';
+                    
+                    // 更新UI
+                    document.getElementById('markov-accuracy').textContent = '--';
+                    document.getElementById('lstm-accuracy').textContent = '--';
+                    document.getElementById('rl-accuracy').textContent = '--';
+                    
+                    updateModelWeights();
+                    updateHistoryTable();
+                    
+                    alert('数据已重置！');
+                }
+            });
+            
+            // 添加玩家按钮
+            addPlayerBtn.addEventListener('click', function() {
+                addNewPlayer(newPlayerInput.value);
+            });
+            
+            // 玩家切换事件
+            opponentSelect.addEventListener('change', function() {
+                switchPlayer(this.value);
+            });
+            
+            // 尝试加载保存的数据
+            const savedData = localStorage.getItem('rpsAssistantData');
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    
+                    // 迁移旧数据格式
+                    if (data.players) {
+                        state.players = data.players;
+                        for (const playerId in state.players) {
+                            const player = state.players[playerId];
+                            if (player.stats && player.stats.notdrawstotal === undefined) {
+                                player.stats.notdrawstotal = (player.stats.wins || 0) + (player.stats.losses || 0);
+                                player.stats.total = player.stats.wins + player.stats.losses + player.stats.draws;
+                            }
+                        }
+                    } else {
+                        // 旧格式迁移
+                        state.players['default'].history = data.history || [];
+                        state.players['default'].stats = data.stats || {
+                            wins: 0,
+                            losses: 0,
+                            draws: 0,
+                            total: 0,
+                            streak: 0,
+                            notdrawstotal:0
+                        };
+                        if (data.stats && !data.stats.notdrawstotal) {
+                            state.players['default'].stats.notdrawstotal = data.stats.wins + data.stats.losses;
+                        }
+                        state.players['default'].models = data.models || {
+                            markov: { weight: 0.35, accuracy: 0, correct: 0, total: 0 },
+                            lstm: { weight: 0.50, accuracy: 0, correct: 0, total: 0 },
+                            rl: { weight: 0.15, accuracy: 0, correct: 0, total: 0 }
+                        };
+                    }
+                    
+                    // 更新选择框
+                    opponentSelect.innerHTML = '';
+                    for (const id in state.players) {
+                        const player = state.players[id];
+                        const option = document.createElement('option');
+                        option.value = id;
+                        option.textContent = player.name;
+                        if (id === state.currentPlayerId) {
+                            option.selected = true;
+                        }
+                        opponentSelect.appendChild(option);
+                    }
+                    
+                    // 设置当前玩家
+                    switchPlayer(state.currentPlayerId);
+                    
+                    // 如果历史数据足够，训练LSTM模型
+                    if (getCurrentPlayer().history.length >= 5) {
+                        setTimeout(trainLSTMModel, 1000);
+                    }
+                } catch (e) {
+                    console.error('加载数据失败', e);
+                }
+            }
+            
+            // 初始化历史表格
+            updateHistoryTable();
+            createModelsForPlayer();
+        });
+    </script>
+</body>
+</html>
